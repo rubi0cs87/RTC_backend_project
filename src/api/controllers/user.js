@@ -81,12 +81,9 @@ const deleteUser = async (req, res, next) => {
     const isSelf = req.user.email === email;
 
     if (!isAdmin && !isSelf) {
-      return res
-        .status(403)
-        .json({
-          message:
-            "You can only delete your own account or you must be an admin",
-        });
+      return res.status(403).json({
+        message: "You can only delete your own account or you must be an admin",
+      });
     }
 
     const userDeleted = await User.findOneAndDelete({ email });
@@ -99,7 +96,7 @@ const deleteUser = async (req, res, next) => {
     res.status(500).json({ message: "Error deleting user" });
   }
 };
-// revisar esta sección
+
 const putLibrary = async (req, res, next) => {
   try {
     const { email } = req.params;
