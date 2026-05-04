@@ -1,4 +1,4 @@
-const { upload } = require("../../middlewares/file");
+const { uploadVideogames } = require("../../middlewares/file");
 const { isAuth, isAdmin } = require("../../middlewares/isAuth");
 
 const {
@@ -13,16 +13,16 @@ const videogamesRouter = require("express").Router();
 videogamesRouter.get("/", getVideogames);
 videogamesRouter.post(
   "/",
-  upload.single("img"),
   isAuth,
   isAdmin,
+  uploadVideogames.single("videogameImg"),
   postVideogame,
 );
 videogamesRouter.put(
   "/:id",
-  upload.single("img"),
   isAuth,
   isAdmin,
+  uploadVideogames.single("videogameImg"),
   updateVideogame,
 );
 videogamesRouter.delete("/:id", isAuth, isAdmin, deleteVideogame);

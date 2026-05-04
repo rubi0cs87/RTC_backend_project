@@ -1,6 +1,4 @@
-const { genSalt } = require("bcrypt");
 const mongoose = require("mongoose");
-const { platform } = require("node:os");
 
 const videogameSchema = new mongoose.Schema(
   {
@@ -8,7 +6,7 @@ const videogameSchema = new mongoose.Schema(
     platform: { type: String, required: true },
     description: { type: String, required: true },
     price: { type: Number, required: true },
-    img: { type: String, required: true },
+    videogameImg: { type: String, required: true },
   },
   {
     timestamps: true,

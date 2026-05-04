@@ -1,13 +1,24 @@
 const cloudinary = require("cloudinary");
 const multer = require("multer");
-const cloudinaryStorage = require("multer-storage-cloudinary");
+const CloudinaryStorage = require("multer-storage-cloudinary");
 
-const storage = cloudinaryStorage({
+const storageVideogames = new CloudinaryStorage({
   cloudinary,
-  folder: "videogames",
-  allowedFormats: ["jpg", "jpeg", "png", "gif", "webp"],
+  params: {
+    folder: "videogames",
+    allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
+  },
 });
 
-const upload = multer({ storage });
+const storageUserAvatar = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "userAvatar",
+    allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
+  },
+});
 
-module.exports = { upload };
+const uploadVideogames = multer({ storage: storageVideogames });
+const uploadUserAvatar = multer({ storage: storageUserAvatar });
+
+module.exports = { uploadVideogames, uploadUserAvatar };

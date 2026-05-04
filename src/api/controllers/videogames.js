@@ -14,12 +14,20 @@ const getVideogames = async (req, res, next) => {
 
 const postVideogame = async (req, res, next) => {
   try {
-    const newVideogame = new Videogame(req.body);
-    if (req.file) {
-      newVideogame.img = req.file.secure_url;
+    const newVideogame = new Videogame(req.body); 
+    const VideogameExists = await Videogame.findOne({title: newVideogame.title });
+
+    if (VideogameExists) {
+      return res.status(400).json({ message: "Videogame already exists" });
     }
+
+    if (req.file) {
+      newVideogame.videogameImg = req.file.secure_url;
+    }
+
     const videogameSaved = await newVideogame.save();
     return res.status(201).json(videogameSaved);
+    
   } catch (error) {
     console.log("Error in postVideogame controller:", error);
     return res.status(400).json({ error: error.message });
@@ -29,11 +37,20 @@ const postVideogame = async (req, res, next) => {
 const updateVideogame = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const newVideogame = new Videogame(req.body);
-    newVideogame._id = id;
+    const existingVideogame = await Videogame.findById(id);
+
+    if (!existingVideogame) {
+      return res.status(404).json({ message: "Videogame not found" });
+    }
+
+    if (req.file) {
+      await deleteFile(existingVideogame.videogameImg);
+      req.body.videogameImg = req.file.secure_url;
+    }
+
     const videogameUpdated = await Videogame.findByIdAndUpdate(
       id,
-      newVideogame,
+      req.body,
       { new: true },
     );
     return res.status(200).json(videogameUpdated);
@@ -57,7 +74,7 @@ const deleteVideogame = async (req, res, next) => {
       { $pull: { library: videogameDeleted._id } },
     );
 
-    await deleteFile(videogameDeleted.img);
+    await deleteFile(videogameDeleted.videogameImg);
 
     return res.status(200).json({
       message: "Videogame deleted successfully",

@@ -2,6 +2,8 @@ const cloudinary = require("cloudinary");
 
 const deleteFile = async (url) => {
   try {
+    if(!url || url.includes("userDefault")) return;
+
     const array = url.split("/");
     const name = array.at(-1).split(".")[0];
 

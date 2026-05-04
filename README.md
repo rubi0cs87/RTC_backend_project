@@ -75,7 +75,7 @@ API backend RESTful construida con **Node.js** y **Express** que permite a los u
 
 ```bash
 # 1. Clona el repositorio
-git clone <repo-url>
+git clone https://github.com/rubi0cs87/RTC_backend_project.git
 cd RTC_backend_project
 
 # 2. Instala las dependencias
@@ -133,8 +133,10 @@ http://localhost:3000/api
 | `POST`   | `/register`           | Público  | Crear una nueva cuenta de usuario                    |
 | `POST`   | `/login`              | Público  | Iniciar sesión y obtener un JWT                      |
 | `GET`    | `/`                   | 🔒 Auth  | Obtener todos los usuarios (con biblioteca incluida) |
-| `PUT`    | `/change-role/:email` | 🔒 Admin | Cambiar el rol de un usuario entre `user` y `admin`  |
-| `PUT`    | `/library/:email`     | 🔒 Auth  | Añadir un videojuego a la biblioteca del usuario     |
+| `PUT`    | `/change-role/:email` | 🔒 Admin | Promover un usuario de `user` a `admin`              |
+| `PUT`    | `/library`            | 🔒 Auth  | Añadir un videojuego a la biblioteca propia          |
+| `DELETE` | `/library`            | 🔒 Auth  | Eliminar un videojuego de la biblioteca propia       |
+| `PUT`    | `/`                   | 🔒 Auth  | Actualizar el avatar del usuario autenticado         |
 | `DELETE` | `/:email`             | 🔒 Auth  | Eliminar un usuario (solo admin o el propio usuario) |
 
 #### Registro — `POST /api/user/register`
@@ -143,9 +145,10 @@ http://localhost:3000/api
 {
   "email": "usuario@ejemplo.com",
   "password": "contraseña123"
-  // como prueba, se puede crear un usuario con "role" : "admin"
 }
 ```
+
+> Los usuarios siempre se crean con rol `user`. El primer administrador debe crearse directamente desde MongoDB Atlas.
 
 #### Login — `POST /api/user/login`
 
@@ -165,13 +168,25 @@ Respuesta:
 }
 ```
 
-#### Añadir a la biblioteca — `PUT /api/user/library/:email`
+#### Añadir a la biblioteca — `PUT /api/user/library`
 
 ```json
 {
   "videogameId": "<id_objeto_mongodb>"
 }
 ```
+
+#### Eliminar de la biblioteca — `DELETE /api/user/library`
+
+```json
+{
+  "videogameId": "<id_objeto_mongodb>"
+}
+```
+
+#### Actualizar avatar — `PUT /api/user/`
+
+Enviar como `multipart/form-data` con el campo `avatar` (archivo de imagen).
 
 ---
 
@@ -186,13 +201,13 @@ Respuesta:
 
 #### Crear / Actualizar videojuego — `multipart/form-data`
 
-| Campo         | Tipo    | Obligatorio |
-| ------------- | ------- | ----------- |
-| `title`       | string  | ✅          |
-| `platform`    | string  | ✅          |
-| `description` | string  | ✅          |
-| `price`       | number  | ✅          |
-| `img`         | archivo | ✅ (POST)   |
+| Campo          | Tipo    | Obligatorio |
+| -------------- | ------- | ----------- |
+| `title`        | string  | ✅          |
+| `platform`     | string  | ✅          |
+| `description`  | string  | ✅          |
+| `price`        | number  | ✅          |
+| `videogameImg` | archivo | ✅ (POST)   |
 
 ---
 
@@ -210,19 +225,20 @@ Respuesta:
 
 ### Usuario
 
-| Campo      | Tipo       | Notas                                   |
-| ---------- | ---------- | --------------------------------------- |
-| `email`    | String     | Obligatorio, único                      |
-| `password` | String     | Hasheado con bcrypt al guardar          |
-| `role`     | String     | `"user"` (por defecto) \| `"admin"`     |
-| `library`  | ObjectId[] | Referencias a la colección `videogames` |
+| Campo      | Tipo       | Notas                                         |
+| ---------- | ---------- | --------------------------------------------- |
+| `email`    | String     | Obligatorio, único                            |
+| `password` | String     | Hasheado con bcrypt al guardar                |
+| `role`     | String     | `"user"` (por defecto) \| `"admin"`           |
+| `avatar`   | String     | URL de Cloudinary (default si no se sube)     |
+| `library`  | ObjectId[] | Referencias a la colección `videogames`       |
 
 ### Videojuego
 
-| Campo         | Tipo   | Notas                           |
-| ------------- | ------ | ------------------------------- |
-| `title`       | String | Obligatorio                     |
-| `platform`    | String | Obligatorio                     |
-| `description` | String | Obligatorio                     |
-| `price`       | Number | Obligatorio                     |
-| `img`         | String | Obligatorio — URL de Cloudinary |
+| Campo          | Tipo   | Notas                           |
+| -------------- | ------ | ------------------------------- |
+| `title`        | String | Obligatorio                     |
+| `platform`     | String | Obligatorio                     |
+| `description`  | String | Obligatorio                     |
+| `price`        | Number | Obligatorio                     |
+| `videogameImg` | String | Obligatorio — URL de Cloudinary |

@@ -1,17 +1,43 @@
 const mongoose = require("mongoose");
+const cloudinary = require("cloudinary");
+const dotenv = require("dotenv");
+const path = require("node:path");
+dotenv.config();
 const Videogame = require("../../api/models/videogames.js");
 const videogames = require("../../data/videogames_data.js");
 
 const launchSeed = async () => {
   try {
-    await mongoose.connect(
-      "mongodb://ssanchiz:oP4WiiMcP9Iujhdv@ac-2v2fa9x-shard-00-00.ddkycc2.mongodb.net:27017,ac-2v2fa9x-shard-00-01.ddkycc2.mongodb.net:27017,ac-2v2fa9x-shard-00-02.ddkycc2.mongodb.net:27017/?ssl=true&replicaSet=atlas-mho4e7-shard-0&authSource=admin&appName=Cluster0",
-    );
+    await mongoose.connect(process.env.DB_URL);
     console.log("Connected to MongoDB");
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+    });
+
+    try {
     await Videogame.collection.drop();
     console.log("Collection dropped");
+    } catch (error) {
+      console.log("No collection to drop");
+    }
+    
+    console.log("Uploading images to Cloudinary...");
+      for (const videogame of videogames) {
+        const localImagePath = path.resolve(__dirname, "../../data", videogame.videogameImg);
+        const result = await cloudinary.v2.uploader.upload(localImagePath, {
+          folder: "videogames",
+          public_id: path.parse(videogame.videogameImg).name,
+          overwrite: true,
+        });
+        videogame.videogameImg = result.secure_url;
+        console.log(`Image for ${videogame.title} uploaded`);
+      }
+      
     await Videogame.insertMany(videogames);
     console.log("Data inserted");
+
     await mongoose.disconnect();
     console.log("Disconnected from MongoDB");
   } catch (error) {

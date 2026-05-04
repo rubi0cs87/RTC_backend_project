@@ -1,16 +1,9 @@
-const cloudinary = require("cloudinary").v2;
 require("dotenv").config();
 const express = require("express");
 const userRouter = require("./src/api/routes/user");
 const videogamesRouter = require("./src/api/routes/videogames");
 const { connectDB } = require("./src/config/db");
 const { connectCloudinary } = require("./src/config/cloudinary");
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
 
 const app = express();
 
