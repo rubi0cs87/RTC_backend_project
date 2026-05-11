@@ -14,8 +14,10 @@ const getVideogames = async (req, res, next) => {
 
 const postVideogame = async (req, res, next) => {
   try {
-    const newVideogame = new Videogame(req.body); 
-    const VideogameExists = await Videogame.findOne({title: newVideogame.title });
+    const newVideogame = new Videogame(req.body);
+    const VideogameExists = await Videogame.findOne({
+      title: newVideogame.title,
+    });
 
     if (VideogameExists) {
       return res.status(400).json({ message: "Videogame already exists" });
@@ -27,7 +29,6 @@ const postVideogame = async (req, res, next) => {
 
     const videogameSaved = await newVideogame.save();
     return res.status(201).json(videogameSaved);
-    
   } catch (error) {
     console.log("Error in postVideogame controller:", error);
     return res.status(400).json({ error: error.message });
@@ -48,11 +49,9 @@ const updateVideogame = async (req, res, next) => {
       req.body.videogameImg = req.file.secure_url;
     }
 
-    const videogameUpdated = await Videogame.findByIdAndUpdate(
-      id,
-      req.body,
-      { new: true },
-    );
+    const videogameUpdated = await Videogame.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
     return res.status(200).json(videogameUpdated);
   } catch (error) {
     console.log("Error in updateVideogame controller:", error);

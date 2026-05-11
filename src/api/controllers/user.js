@@ -5,15 +5,22 @@ const User = require("../models/user");
 const Videogame = require("../models/videogames");
 const bcrypt = require("bcrypt");
 const mongoose = require("mongoose");
-
+const { isValidEmail } = require("../../utils/isValidEmail");
 
 const register = async (req, res, next) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
+      return res
+        .status(400)
+        .json({ message: "Email and password are required" });
     }
-    const user = new User({ ...req.body, role: "user" });
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: "Invalid email format" });
+    }
+
+    const user = new User({ email, password, role: "user" });
     const userExists = await User.findOne({ email: user.email });
 
     if (userExists) {
@@ -21,14 +28,14 @@ const register = async (req, res, next) => {
     }
 
     if (req.file) {
-      user.avatar = req.file.secure_url; 
+      user.avatar = req.file.secure_url;
     } else {
       user.avatar = await getOrCreateDefaultAvatar();
     }
 
     const userSaved = await user.save();
-    const userResponse = userSaved.toObject();
-    delete userResponse.password;
+    const { password: _pw, ...userResponse } = userSaved.toObject();
+
     return res.status(201).json(userResponse);
   } catch (error) {
     return res.status(500).json({ message: "Error registering user" });
@@ -39,18 +46,21 @@ const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
+      return res
+        .status(400)
+        .json({ message: "Email and password are required" });
     }
 
     const user = await User.findOne({ email }).select("+password");
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
+
     if (bcrypt.compareSync(password, user.password)) {
       const token = generateToken(user._id);
       const { password: _pw, ...userResponse } = user.toObject();
-      return res.status(200).json({ token, user: userResponse });
 
+      return res.status(200).json({ token, user: userResponse });
     } else {
       return res.status(400).json({ message: "Invalid credentials" });
     }
@@ -70,30 +80,41 @@ const getUsers = async (req, res, next) => {
 
 const updateUser = async (req, res, next) => {
   try {
+    const { email, password } = req.body;
+
+    if (email && !isValidEmail(email)) {
+      return res.status(400).json({ message: "Invalid email format" });
+    }
+
+    if (email) {
+      const emailTaken = await User.findOne({
+        email,
+        _id: { $ne: req.user._id },
+      });
+      if (emailTaken) {
+        return res.status(400).json({ message: "Email already in use" });
+      }
+    }
+
     const currentUser = await User.findById(req.user._id);
     if (!currentUser) {
       return res.status(404).json({ message: "User not found" });
     }
 
     if (req.file) {
-      if (currentUser.avatar) {
-        await deleteFile(currentUser.avatar);
-      }
-      currentUser.avatar = req.file.secure_url;
-    } else {
       if (currentUser.avatar && !currentUser.avatar.includes("userDefault")) {
         await deleteFile(currentUser.avatar);
       }
-      currentUser.avatar = await getOrCreateDefaultAvatar();
+      currentUser.avatar = req.file.secure_url;
     }
-    
-    const userUpdated = await User.findByIdAndUpdate(
-      currentUser._id,
-      { avatar: currentUser.avatar },
-      { new: true }
-    );
-    
-    return res.status(200).json(userUpdated);
+
+    if (email) currentUser.email = email;
+    if (password) currentUser.password = password;
+
+    const userSaved = await currentUser.save();
+    const { password: _pw, ...userResponse } = userSaved.toObject();
+
+    return res.status(200).json(userResponse);
   } catch (error) {
     return res.status(400).json({ message: "Error updating user" });
   }
@@ -108,22 +129,21 @@ const changeRole = async (req, res, next) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    if(user.role === "user") {
+    if (user.role === "user") {
       user.role = "admin";
-    await user.save();
+      await user.save();
 
-    return res.status(200).json({
-      message: "User upgraded to admin successfully",
-      user: {
-        email: user.email,
-        role: user.role,
-      },
-    });
-    } 
-      return res.status(400).json({
-        message: "User is already an admin and cannot be demoted", 
+      return res.status(200).json({
+        message: "User upgraded to admin successfully",
+        user: {
+          email: user.email,
+          role: user.role,
+        },
       });
-      
+    }
+    return res.status(400).json({
+      message: "User is already an admin and cannot be demoted",
+    });
   } catch (error) {
     res.status(500).json({ message: "Error updating role" });
   }
@@ -142,13 +162,18 @@ const deleteUser = async (req, res, next) => {
     const isSelf = req.user.email === email;
 
     if (!isSelf && !(isAdmin && userToEliminate.role === "user")) {
-      return res.status(403).json({ message: "Invalid operation, you can only delete your own account or an admin can delete a user" });
+      return res.status(403).json({
+        message:
+          "Invalid operation, you can only delete your own account or an admin can delete a user",
+      });
     }
 
     if (userToEliminate.role === "admin") {
       const adminCount = await User.countDocuments({ role: "admin" });
       if (adminCount <= 1) {
-        return res.status(400).json({ message: "Cannot delete the last admin" });
+        return res
+          .status(400)
+          .json({ message: "Cannot delete the last admin" });
       }
     }
 
@@ -157,7 +182,6 @@ const deleteUser = async (req, res, next) => {
     }
 
     await User.findByIdAndDelete(userToEliminate._id);
-  
 
     return res.status(200).json({ message: "User deleted successfully" });
   } catch (error) {
@@ -185,7 +209,7 @@ const putLibrary = async (req, res, next) => {
     const updatedUser = await User.findOneAndUpdate(
       { _id: req.user._id, library: { $ne: videogameId } },
       { $addToSet: { library: videogameId } },
-      { new: true }
+      { new: true },
     );
 
     if (!updatedUser) {
@@ -196,15 +220,16 @@ const putLibrary = async (req, res, next) => {
       message: "Library updated successfully",
       library: updatedUser.library,
     });
-
   } catch (error) {
-    res.status(500).json({ message: "Error updating library", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error updating library", error: error.message });
   }
 };
 
 const deleteLibrary = async (req, res, next) => {
   try {
-    const {videogameId} = req.body;
+    const { videogameId } = req.body;
     if (!videogameId) {
       return res.status(400).json({ message: "videogameId is required" });
     }
@@ -219,7 +244,7 @@ const deleteLibrary = async (req, res, next) => {
     const updatedUser = await User.findOneAndUpdate(
       { _id: req.user._id, library: videogameId },
       { $pull: { library: videogameId } },
-      { new: true }
+      { new: true },
     );
 
     if (!updatedUser) {
@@ -230,9 +255,12 @@ const deleteLibrary = async (req, res, next) => {
       library: updatedUser.library,
     });
   } catch (error) {
-    res.status(500).json({ message: "Error removing videogame from library", error: error.message });
+    res.status(500).json({
+      message: "Error removing videogame from library",
+      error: error.message,
+    });
   }
-}
+};
 
 module.exports = {
   register,

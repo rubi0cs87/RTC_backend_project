@@ -17,24 +17,28 @@ const launchSeed = async () => {
     });
 
     try {
-    await Videogame.collection.drop();
-    console.log("Collection dropped");
+      await Videogame.collection.drop();
+      console.log("Collection dropped");
     } catch (error) {
       console.log("No collection to drop");
     }
-    
+
     console.log("Uploading images to Cloudinary...");
-      for (const videogame of videogames) {
-        const localImagePath = path.resolve(__dirname, "../../data", videogame.videogameImg);
-        const result = await cloudinary.v2.uploader.upload(localImagePath, {
-          folder: "videogames",
-          public_id: path.parse(videogame.videogameImg).name,
-          overwrite: true,
-        });
-        videogame.videogameImg = result.secure_url;
-        console.log(`Image for ${videogame.title} uploaded`);
-      }
-      
+    for (const videogame of videogames) {
+      const localImagePath = path.resolve(
+        __dirname,
+        "../../data",
+        videogame.videogameImg,
+      );
+      const result = await cloudinary.v2.uploader.upload(localImagePath, {
+        folder: "videogames",
+        public_id: path.parse(videogame.videogameImg).name,
+        overwrite: true,
+      });
+      videogame.videogameImg = result.secure_url;
+      console.log(`Image for ${videogame.title} uploaded`);
+    }
+
     await Videogame.insertMany(videogames);
     console.log("Data inserted");
 

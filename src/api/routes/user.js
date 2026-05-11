@@ -1,6 +1,6 @@
 const usersRouter = require("express").Router();
 const { isAuth, isAdmin } = require("../../middlewares/isAuth");
-const { uploadUserAvatar } = require ("../../middlewares/file")
+const { uploadUserAvatar } = require("../../middlewares/file");
 
 const {
   register,
@@ -21,6 +21,5 @@ usersRouter.put("/library", isAuth, putLibrary);
 usersRouter.delete("/library", isAuth, deleteLibrary);
 usersRouter.delete("/:email", isAuth, deleteUser);
 usersRouter.put("/", isAuth, uploadUserAvatar.single("avatar"), updateUser);
-
 
 module.exports = usersRouter;
